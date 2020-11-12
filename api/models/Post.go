@@ -59,6 +59,13 @@ func (p *Post) SavePost(db *gorm.DB) (*Post, error) {
 }
 
 func (p *Post) FindAllPost(db *gorm.DB) (*[]Post, error) {
+	/*
+		i think we can optimize this by doing
+		1. select all posts
+		2. get author id at every post, store to array
+		3. query user by given author ids
+		4. combine the results12
+	*/
 	var err error
 	posts := []Post{}
 	err = db.Debug().Model(Post{}).Limit(100).Find(&posts).Error
@@ -90,4 +97,37 @@ func (p *Post) FindPostByID(db *gorm.DB, pid uint64) (*Post, error) {
 		}
 	}
 	return p, nil
+}
+
+func (p *Post) UpdatePost(db *gorm.DB, pid uint64) (*Post, error) {
+	var err error
+	err = db.Debug().Model(&Post{}).Where("id = ?", p.ID).Updates(Post{
+		Title:    p.Title,
+		Content:  p.Content,
+		UpdateAt: time.Now(),
+	}).Error
+
+	if err != nil {
+		return &Post{}, err
+	}
+
+	if p.ID > 0 {
+		err = db.Debug().Model(&Post{}).Where("id = ?", p.AuthorID).Take(&p.Author).Error
+		if err != nil {
+			return &Post{}, err
+		}
+	}
+	return p, nil
+}
+
+func (p *Post) DeletePost(db *gorm.DB, pid uint64) (int64, error) {
+	db = db.Debug().Model(&Post{}).Where("id = ?", pid).Take(&Post{}).Delete(&Post{})
+	if db.Error != nil {
+		if gorm.IsRecordNotFoundError(db.Error) {
+			return 0, errors.New("Post not found")
+		}
+		return 0, db.Error
+	}
+	return db.RowsAffected, nil
+
 }
