@@ -74,7 +74,7 @@ func ExtractTokenID(r *http.Request) (uint32, error) {
 		}
 		return uint32(uid), nil
 	}
-
+	return 0, nil
 }
 
 func Pretty(data interface{}) {
