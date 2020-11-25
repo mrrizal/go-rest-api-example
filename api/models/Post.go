@@ -14,7 +14,7 @@ type Post struct {
 	Title     string    `gorm:"size:255;not null;unique" json:"title"`
 	Content   string    `gorm:"size:255;not null" json:"content"`
 	Author    User      `json:"author"`
-	AuthorID  uint16    `gorm:"not null" json:"author_id"`
+	AuthorID  uint32    `gorm:"not null" json:"author_id"`
 	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdateAt  time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
 }
@@ -99,7 +99,7 @@ func (p *Post) FindPostByID(db *gorm.DB, pid uint64) (*Post, error) {
 	return p, nil
 }
 
-func (p *Post) UpdatePost(db *gorm.DB, pid uint64) (*Post, error) {
+func (p *Post) UpdateAPost(db *gorm.DB) (*Post, error) {
 	var err error
 	err = db.Debug().Model(&Post{}).Where("id = ?", p.ID).Updates(Post{
 		Title:    p.Title,
@@ -111,7 +111,7 @@ func (p *Post) UpdatePost(db *gorm.DB, pid uint64) (*Post, error) {
 		return &Post{}, err
 	}
 
-	if p.ID > 0 {
+	if p.ID != 0 {
 		err = db.Debug().Model(&Post{}).Where("id = ?", p.AuthorID).Take(&p.Author).Error
 		if err != nil {
 			return &Post{}, err
@@ -120,7 +120,7 @@ func (p *Post) UpdatePost(db *gorm.DB, pid uint64) (*Post, error) {
 	return p, nil
 }
 
-func (p *Post) DeletePost(db *gorm.DB, pid uint64) (int64, error) {
+func (p *Post) DeleteAPost(db *gorm.DB, pid uint64, uid uint32) (int64, error) {
 	db = db.Debug().Model(&Post{}).Where("id = ?", pid).Take(&Post{}).Delete(&Post{})
 	if db.Error != nil {
 		if gorm.IsRecordNotFoundError(db.Error) {
